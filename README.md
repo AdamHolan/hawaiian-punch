@@ -1,3 +1,3 @@
 # hawaiian-punch
-a pygame street fighter clone i did for my computer science class
+a pygame street fighter clone Akshay The Boss and I did for Greid's computer science class
 
