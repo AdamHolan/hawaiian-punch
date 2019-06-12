@@ -14,6 +14,9 @@ pygame.init()
 size = (800, 600)
 screen = pygame.display.set_mode(size)
 
+background = pygame.image.load("beachBackground.png").convert()
+
+
 pygame.display.set_caption('mario killaz')
 
 # loop until close
@@ -21,7 +24,6 @@ done = False
 
 # screen updates (for readability)
 clock = pygame.time.Clock()
-
 
 class character(pygame.sprite.Sprite):
     def __init__(self, name, x, y):
@@ -43,7 +45,7 @@ class character(pygame.sprite.Sprite):
         self.health = 100
         self.attack = 10
         self.speed = 3
-        self.attacking = False
+        self.punching = False
         self.blocking = False
         self.attackTimer = 0
         self.punchAnimationTimer = 0
@@ -69,14 +71,13 @@ class character(pygame.sprite.Sprite):
         pygame.draw.rect(screen, green, [self.healthBarLocation, 50, self.health * 2, 25])
 
     def update(self):
-
         self.calcGravity()
 
-        if self.attacking and not self.blocking:
+        if self.punching and not self.blocking:
             if self.attackTimer < 10:
                 self.image = self.punchImage
             else:
-                self.attacking = False
+                self.punching = False
 
         elif self.blocking:
             self.speed
@@ -105,10 +106,9 @@ class character(pygame.sprite.Sprite):
 
         self.platformHitList = pygame.sprite.spritecollide(self, self.platformList, False)
         for platform in self.platformHitList:
-            if self.yChange > 0:
+            if self.rect.y > 0:
                 self.rect.bottom = platform.rect.top
-
-        self.yChange = 0
+                self.yChange = 0
 
         fruitHitList = pygame.sprite.spritecollide(self, self.fruitsList, True)
 
@@ -119,6 +119,7 @@ class character(pygame.sprite.Sprite):
                 self.attack += 5
             if fruit.name == 'coconut':
                 self.health -= 10
+
     def moveRight(self):
         self.xChange = self.speed
 
@@ -131,6 +132,7 @@ class character(pygame.sprite.Sprite):
         else:
             self.yChange += 0.35
 
+
     def stop(self):
         self.xChange = 0
 
@@ -138,10 +140,10 @@ class character(pygame.sprite.Sprite):
 
     def punch(self):
         if self.attackTimer == 0:
-            self.attacking = True
+            self.punching = True
             self.attackTimer += 1
 
-        if not self.blocking and self.attacking:
+        if not self.blocking and self.punching:
             inflated = self.rect.inflate(30, 0)
             if inflated.colliderect(self.enemy):
                 if self.enemy.blocking:
@@ -164,7 +166,7 @@ class character(pygame.sprite.Sprite):
         self.rect.y -= 2
 
         if len(self.platformHitList) > 0:
-            self.yChange = -20
+            self.yChange = -9
 
 
 class platform(pygame.sprite.Sprite):
@@ -173,18 +175,15 @@ class platform(pygame.sprite.Sprite):
         self.width = size[0]
         self.height = size[1]
         self.image = pygame.Surface([self.width, self.height])
-       # self.image.fill(red)
         self.rect = self.image.get_rect()
         self.rect.x = 0
-        self.rect.y = 440
+        self.rect.y = 500
 
 
 class Fruit(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.name = random.choice(('banana', 'mango', 'coconut'))
-        
-        print(self.name)
         self.image = pygame.image.load(self.name + '.png').convert()
         self.image.set_colorkey(black)
         self.rect = self.image.get_rect()
@@ -206,13 +205,14 @@ class Fruit(pygame.sprite.Sprite):
                 self.rect.bottom = platform.rect.top
                 if self.name == 'coconut':
                     self.rect.y = 800
+                    self.changeY = 0
             # basically destroy it but im moving it away from the screen, never to be touched
 
     def calcGravity(self):
         if self.changeY > 0:
             self.changeY += 0.35
 
-background = pygame.image.load("beachBackground.png").convert()
+
 
 # platform and player initilization (outside loop)
 
@@ -253,7 +253,7 @@ def fightKeyhandler():
             if event.key == pygame.K_a:
                 player1.stop()
             if event.key == pygame.K_e:
-                player1.attacking = False
+                player1.punching = False
             if event.key == pygame.K_q:
                 player1.blocking = False
             if event.key == pygame.K_RIGHT:
@@ -261,7 +261,7 @@ def fightKeyhandler():
             if event.key == pygame.K_LEFT:
                 player2.stop()
             if event.key == pygame.K_SLASH:
-                player2.attacking = False
+                player2.punching = False
         return done
 
 def menuKeyhandler():
@@ -291,7 +291,7 @@ def score():
 def fight(roundNum, player1Points, player2Points):
     # spawn rate
     scene = 1
-    if random.randint(1, 300) == 1:
+    if random.randint(1, 100) == 1:
         fruit = Fruit()
         fruitsList.add(fruit)
         fruit.platformList.add(mainPlatform)
@@ -344,8 +344,9 @@ while not done:
         player2 = character('player2', 500, 350)
         playersList.add(player1)
         playersList.add(player2)
-        player1.platformList.add(mainPlatform)
-        player2.platformList.add(mainPlatform)
+        for player in playersList:
+            for platform in platformList:
+                player.platformList.add(platform)
         player1.enemy = player2
         player2.enemy = player1
 
@@ -355,7 +356,7 @@ while not done:
 
     # screen clearing code
     screen.fill(black)
-    screen.blit(background,[0,0])
+    screen.blit(background, [0,0])
 
     # game logic
 
