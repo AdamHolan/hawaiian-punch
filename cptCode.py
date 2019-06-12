@@ -61,6 +61,7 @@ class character(pygame.sprite.Sprite):
             self.punchImage = pygame.transform.flip(self.punchImage, True, False)
             self.blockImage = pygame.transform.flip(self.blockImage, True, False)
         self.platformList = pygame.sprite.Group()
+        self.points = 0
 
 
 
@@ -265,6 +266,17 @@ def fightKeyhandler():
         return done
 
 def menuKeyhandler():
+    scene = -1
+    done = False
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            done = True
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_a:
+                scene = 0
+    return scene, done
+
+def roundKeyhandler():
     scene = 0
     done = False
     for event in pygame.event.get():
@@ -275,20 +287,40 @@ def menuKeyhandler():
                 scene = 1
     return scene, done
 
+
+def init():
+    # reset player and initiialize them
+    # i dont have it outside the loop since i need to do this several times anyway
+    for player in playersList:
+        playersList.remove(player)
+    for fruit in fruitsList:
+        fruitsList.remove(fruit)
+    player1 = character('player1', 200, 400)
+    player2 = character('player2', 510, 400)
+    playersList.add(player1)
+    playersList.add(player2)
+    for player in playersList:
+        for platform in platformList:
+            player.platformList.add(platform)
+    player1.enemy = player2
+    player2.enemy = player1
+    return player1, player2
+
+
 roundNum = 1
-scene = 2
-player1Points = 0
-player2Points = 0
+scene = -1
+# p1Points = 0
+# p2Points = 0
 
 def score():
     font = pygame.font.SysFont('comicsansms', 50)
-    player1PointsOnScreen = font.render(str(player1Points), True, white)
-    player2PointsOnScreen = font.render(str(player2Points), True, white)
-    screen.blit(player1PointsOnScreen, [330, 45])
-    screen.blit(player2PointsOnScreen, [450, 45])
+    p1PointsOnScreen = font.render(str(player1.points), True, white)
+    p2PointsOnScreen = font.render(str(player2.points), True, white)
+    screen.blit(p1PointsOnScreen, [330, 45])
+    screen.blit(p2PointsOnScreen, [450, 45])
 
 
-def fight(roundNum, player1Points, player2Points):
+def fight(roundNum, player1, player2):
     # spawn rate
     scene = 1
     if random.randint(1, 100) == 1:
@@ -308,14 +340,14 @@ def fight(roundNum, player1Points, player2Points):
         if dead:
             # check if a player has died and add score acordingly
             if player == player1:
-                player2Points += 1
+                player2.points += 1
             else:
-                player1Points += 1
+                player1.points += 1
             # kill the player and reset the scene
             playersList.remove(player)
             roundNum += 1
             scene = 2
-    return scene, roundNum, player1Points, player2Points
+    return scene, roundNum, player1, player2
 
 
 def roundScreen():
@@ -324,34 +356,34 @@ def roundScreen():
     pygame.draw.rect(screen, black, [0, 0, size[0], size[1]])
     screen.blit(roundMessage, [100, 100])
 
+def mainMenu():
+    image = pygame.image.load('mainMenuBG.png').convert()
+    font = pygame.font.SysFont('comicsansms', 72)
+    hawaiianPunch = font.render('Hawaiian Punch', False, black)
+    pressAToStart = font.render('Press A to Start', False, red)
+    screen.blit(image, [0, 0])
+    screen.blit(hawaiianPunch, [200, 200])
+    screen.blit(pressAToStart, [200, 300])
 
-
+player1, player2 = init()
 # program loop
 while not done:
     # event loop
-    if scene == 0:
+    if scene == -1:
         scene, done = menuKeyhandler()
+    elif scene == 0:
+        scene, done = roundKeyhandler()
     elif scene == 1:
         done = fightKeyhandler()
     elif scene == 2:
-        # reset player and initiialize them
-        # i dont have it outside the loop since i need to do this several times anyway
-        for player in playersList:
-            playersList.remove(player)
-        for fruit in fruitsList:
-            fruitsList.remove(fruit)
-        player1 = character('player1', 100, 350)
-        player2 = character('player2', 500, 350)
-        playersList.add(player1)
-        playersList.add(player2)
-        for player in playersList:
-            for platform in platformList:
-                player.platformList.add(platform)
-        player1.enemy = player2
-        player2.enemy = player1
-
+        p1Points = player1.points
+        p2Points = player2.points
+        player1, player2 = init()
+        player1.points = p1Points
+        player2.points = p2Points
         scene = 0
     # game logic
+    print(scene)
 
 
     # screen clearing code
@@ -359,12 +391,15 @@ while not done:
     screen.blit(background, [0,0])
 
     # game logic
+    if scene == -1:
+        mainMenu()
 
-    if scene == 0:
+    elif scene == 0:
         roundScreen()
+
     else:
         score()
-        scene, roundNum, player1Points, player2Points = fight(roundNum, player1Points, player2Points)
+        scene, roundNum, player1, player2 = fight(roundNum, player1, player2)
 
     # update display
     pygame.display.flip()
