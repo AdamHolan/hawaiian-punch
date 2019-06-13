@@ -1,3 +1,8 @@
+# CPT: Hawaiian Punch
+# Authors : Adam & Akshay
+# Course: ICS3U1
+# Date: 2019/06/13
+
 import pygame
 import random
 
@@ -26,42 +31,63 @@ done = False
 clock = pygame.time.Clock()
 
 class character(pygame.sprite.Sprite):
-    def __init__(self, name, x, y):
+    def __init__(self, name, char, x, y):
         super().__init__()
+        # name means which player you are, and char is the character you are playing
         self.name = name
-        self.idleImage = pygame.image.load('ryu.png').convert()
-        self.idleImage.set_colorkey(black)
-        self.punchImage = pygame.image.load('ryuPunch.png').convert()
-        self.punchImage.set_colorkey(black)
-        self.blockImage = pygame.image.load('ryuBlock.png').convert()
-        self.blockImage.set_colorkey(black)
-        self.image = self.idleImage
+        self.char = char
+
+        # image sections, seperated right from left
+        self.idleImageRight = pygame.image.load(char + '.png').convert()
+        self.idleImageRight.set_colorkey(black)
+        self.punchImageRight = pygame.image.load(char + 'Punch.png').convert()
+        self.punchImageRight.set_colorkey(black)
+        self.blockImageRight = pygame.image.load(char + 'Block.png').convert()
+        self.blockImageRight.set_colorkey(black)
+
+        self.idleImageLeft = pygame.transform.flip(self.idleImageRight, True, False)
+        self.punchImageLeft = pygame.transform.flip(self.punchImageRight, True, False)
+        self.blockImageLeft = pygame.transform.flip(self.blockImageRight, True, False)
+        self.image = self.idleImageRight
+
+        # rectangle and positional sections
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.fruitsList = pygame.sprite.Group()
         self.xChange = 0
         self.yChange = 0
+
+        # character's attributes
         self.health = 100
         self.attack = 10
-        self.speed = 3
-        self.punching = False
-        self.blocking = False
+        self.punchSpeed = 0
         self.attackTimer = 0
         self.punchAnimationTimer = 0
+        self.points = 0
+
+        # used to control the flow of animations
+        self.punching = False
+        self.blocking = False
         self.enemy = None
-        self.font = pygame.font.SysFont('comicsansms', 50)
+
+
         # player specific attributes
         if self.name == 'player1':
             self.healthBarLocation = 100
+            self.idleImage = self.idleImageRight
+            self.punchImage = self.punchImageRight
+            self.blockImage = self.blockImageRight
+
         # flip images to face
         else:
             self.healthBarLocation = 500
-            self.idleImage = pygame.transform.flip(self.idleImage, True, False)
-            self.punchImage = pygame.transform.flip(self.punchImage, True, False)
-            self.blockImage = pygame.transform.flip(self.blockImage, True, False)
+            self.idleImage = self.idleImageLeft
+            self.punchImage = self.punchImageLeft
+            self.blockImage = self.blockImageLeft
+
+        # lists
         self.platformList = pygame.sprite.Group()
-        self.points = 0
+        self.fruitsList = pygame.sprite.Group()
 
 
 
@@ -81,11 +107,20 @@ class character(pygame.sprite.Sprite):
                 self.punching = False
 
         elif self.blocking:
-            self.speed
             self.image = self.blockImage
 
         else:
             self.image = self.idleImage
+            if self.rect.x > self.enemy.rect.x:
+                self.idleImage = self.idleImageLeft
+                self.punchImage = self.punchImageLeft
+                self.blockImage = self.blockImageLeft
+            else:
+                self.idleImage = self.idleImageRight
+                self.punchImage = self.punchImageRight
+                self.blockImage = self.blockImageRight
+
+
         self.rect.x += self.xChange
         self.rect.y += self.yChange
         self.healthBar()
@@ -94,14 +129,14 @@ class character(pygame.sprite.Sprite):
         if self.attackTimer != 0:
             # self.attacking = False
             self.attackTimer += 1
-            if self.attackTimer == 20:
+            if self.attackTimer == 20 - self.punchSpeed:
                 self.attackTimer = 0
 
         enemyColList = pygame.sprite.spritecollide(self, [self.enemy], False)
 
         for enemy in enemyColList:
-            if self.name == 'player2':
-                self.stop()
+            if self.rect.x > self.enemy.rect.x:
+                self.rect.left = self.enemy.rect.right
             else:
                 self.rect.right = self.enemy.rect.left
 
@@ -111,33 +146,29 @@ class character(pygame.sprite.Sprite):
                 self.rect.bottom = platform.rect.top
                 self.yChange = 0
 
+        if self.rect.left < 0:
+            self.rect.left = 0
+        elif self.rect.right > size[0]:
+            self.rect.right = size[0]
+
         fruitHitList = pygame.sprite.spritecollide(self, self.fruitsList, True)
 
         for fruit in fruitHitList:
             if fruit.name == 'banana':
-                self.speed += 1
+                self.punchSpeed += 3
             if fruit.name == 'mango':
                 self.attack += 5
             if fruit.name == 'coconut':
                 self.health -= 10
 
-    def moveRight(self):
-        self.xChange = self.speed
-
-    def moveLeft(self):
-        self.xChange = -self.speed
+    def changeSpeed(self, x):
+        self.xChange += x
 
     def calcGravity(self):
         if self.yChange == 0:
             self.yChange = 1
         else:
             self.yChange += 0.35
-
-
-    def stop(self):
-        self.xChange = 0
-
-    # def checkCol(self, enemy):
 
     def punch(self):
         if self.attackTimer == 0:
@@ -167,7 +198,7 @@ class character(pygame.sprite.Sprite):
         self.rect.y -= 2
 
         if len(self.platformHitList) > 0:
-            self.yChange = -9
+            self.yChange = -10
 
 
 class platform(pygame.sprite.Sprite):
@@ -213,8 +244,6 @@ class Fruit(pygame.sprite.Sprite):
         if self.changeY > 0:
             self.changeY += 0.35
 
-
-
 # platform and player initilization (outside loop)
 
 playersList = pygame.sprite.Group()
@@ -223,7 +252,6 @@ platformList = pygame.sprite.Group()
 platformList.add(platform())
 fruitsList = pygame.sprite.Group()
 
-
 def fightKeyhandler():
     done = False
     for event in pygame.event.get():
@@ -231,36 +259,36 @@ def fightKeyhandler():
             done = True
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_d:
-                player1.moveRight()
+                player1.changeSpeed(3)
             if event.key == pygame.K_a:
-                player1.moveLeft()
+                player1.changeSpeed(-3)
             if event.key == pygame.K_e:
                 player1.punch()
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_w:
                 player1.jump()
             if event.key == pygame.K_q:
                 player1.block()
             if event.key == pygame.K_RIGHT:
-                player2.moveRight()
+                player2.changeSpeed(3)
             if event.key == pygame.K_LEFT:
-                player2.moveLeft()
+                player2.changeSpeed(-3)
             if event.key == pygame.K_SLASH:
                 player2.punch()
             if event.key == pygame.K_ESCAPE:
                 done = True
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_d:
-                player1.stop()
+                player1.changeSpeed(-3)
             if event.key == pygame.K_a:
-                player1.stop()
+                player1.changeSpeed(3)
             if event.key == pygame.K_e:
                 player1.punching = False
             if event.key == pygame.K_q:
                 player1.blocking = False
             if event.key == pygame.K_RIGHT:
-                player2.stop()
+                player2.changeSpeed(-3)
             if event.key == pygame.K_LEFT:
-                player2.stop()
+                player2.changeSpeed(3)
             if event.key == pygame.K_SLASH:
                 player2.punching = False
         return done
@@ -269,24 +297,10 @@ def menuKeyhandler():
     scene = -1
     done = False
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            done = True
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
+            if event.key == pygame.K_RETURN:
                 scene = 0
     return scene, done
-
-def roundKeyhandler():
-    scene = 0
-    done = False
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            done = True
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_y:
-                scene = 1
-    return scene, done
-
 
 def init():
     # reset player and initiialize them
@@ -295,8 +309,8 @@ def init():
         playersList.remove(player)
     for fruit in fruitsList:
         fruitsList.remove(fruit)
-    player1 = character('player1', 200, 400)
-    player2 = character('player2', 510, 400)
+    player1 = character('player1', 'ryu', 200, 400)
+    player2 = character('player2', 'ken', 510, 400)
     playersList.add(player1)
     playersList.add(player2)
     for player in playersList:
@@ -304,13 +318,15 @@ def init():
             player.platformList.add(platform)
     player1.enemy = player2
     player2.enemy = player1
+    player1.xChange = 0
+    player2.xChange = 0
     return player1, player2
 
 
 roundNum = 1
 scene = -1
-# p1Points = 0
-# p2Points = 0
+timer = 0
+
 
 def score():
     font = pygame.font.SysFont('comicsansms', 50)
@@ -318,6 +334,16 @@ def score():
     p2PointsOnScreen = font.render(str(player2.points), True, white)
     screen.blit(p1PointsOnScreen, [330, 45])
     screen.blit(p2PointsOnScreen, [450, 45])
+
+
+def mainMenu():
+    image = pygame.image.load('mainMenuBG.png').convert()
+    font = pygame.font.SysFont('comicsansms', 72)
+    hawaiianPunch = font.render('Hawaiian Punch', False, black)
+    pressEnterToStart = font.render('Press Enter to Start', False, red)
+    screen.blit(image, [0, 0])
+    screen.blit(hawaiianPunch, [200, 200])
+    screen.blit(pressEnterToStart, [180, 300])
 
 
 def fight(roundNum, player1, player2):
@@ -350,29 +376,23 @@ def fight(roundNum, player1, player2):
     return scene, roundNum, player1, player2
 
 
-def roundScreen():
+def roundScreen(timer):
+    timer += 1
     font = pygame.font.SysFont('comicsansms', 72)
     roundMessage = font.render('Round ' + str(roundNum), False, white)
     pygame.draw.rect(screen, black, [0, 0, size[0], size[1]])
     screen.blit(roundMessage, [100, 100])
-
-def mainMenu():
-    image = pygame.image.load('mainMenuBG.png').convert()
-    font = pygame.font.SysFont('comicsansms', 72)
-    hawaiianPunch = font.render('Hawaiian Punch', False, black)
-    pressAToStart = font.render('Press A to Start', False, red)
-    screen.blit(image, [0, 0])
-    screen.blit(hawaiianPunch, [200, 200])
-    screen.blit(pressAToStart, [200, 300])
+    pygame.event.clear()
+    return timer
 
 player1, player2 = init()
+
 # program loop
 while not done:
+
     # event loop
     if scene == -1:
         scene, done = menuKeyhandler()
-    elif scene == 0:
-        scene, done = roundKeyhandler()
     elif scene == 1:
         done = fightKeyhandler()
     elif scene == 2:
@@ -383,7 +403,6 @@ while not done:
         player2.points = p2Points
         scene = 0
     # game logic
-    print(scene)
 
 
     # screen clearing code
@@ -395,7 +414,10 @@ while not done:
         mainMenu()
 
     elif scene == 0:
-        roundScreen()
+        if timer / 60 == 1:
+            timer = 0
+            scene = 1
+        timer = roundScreen(timer)
 
     else:
         score()
@@ -403,7 +425,6 @@ while not done:
 
     # update display
     pygame.display.flip()
-
 
     # 60 frames
     clock.tick(60)
