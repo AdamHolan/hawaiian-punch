@@ -61,6 +61,7 @@ class character(pygame.sprite.Sprite):
         self.enemy = None
         self.moveRight = False
         self.moveLeft = False
+        self.showHealth = True
 
         # player specific attributes
         if self.name == 'player1':
@@ -98,8 +99,9 @@ class character(pygame.sprite.Sprite):
 
     # display a simple healthbar
     def healthBar(self):
-        pygame.draw.rect(screen, red, [self.healthBarLocation, 50, 200, 25])
-        pygame.draw.rect(screen, green, [self.healthBarLocation, 50, self.health * 2, 25])
+        if self.showHealth:
+            pygame.draw.rect(screen, red, [self.healthBarLocation, 50, 200, 25])
+            pygame.draw.rect(screen, green, [self.healthBarLocation, 50, self.health * 2, 25])
 
     # main update method, controls animations, collisions, and movement
     def update(self):
@@ -144,7 +146,19 @@ class character(pygame.sprite.Sprite):
         self.rect.x += self.xChange
         self.rect.y += self.yChange
 
-        # display the health bar
+        # display the health bar if punnching, not blocking, and your attack is not on cooldown, display the punch image
+        if self.punching and not self.blocking:
+            if self.attackTimer < 10:
+                self.image = self.punchImage
+
+            # this stops punch image from displaying if it's not on cooldown
+            else:
+                self.punching = False
+
+        # display blocking image
+        elif self.blocking:
+            self.image = self.blockImage
+
         self.healthBar()
 
         # control how fast you can punch. at 60 fps it takes 1 second
@@ -323,7 +337,7 @@ kenBlock = charBlock(370, 'ken', green)
 charBlockList.add(ryuBlock)
 charBlockList.add(kenBlock)
 
-
+# handle keypresses for the main menu
 def menuKeyhandler():
     scene = 0
     done = False
@@ -334,7 +348,7 @@ def menuKeyhandler():
                 pygame.event.clear()
     return scene, done
 
-
+# handle keypresses for the character select screen
 def cssKeyhandler():
     done = False
     for event in pygame.event.get():
@@ -366,7 +380,7 @@ def cssKeyhandler():
                 player2.moveLeft = False
     return done
 
-
+# handle keypresses for the fight scene
 def fightKeyhandler():
     done = False
     for event in pygame.event.get():
@@ -415,7 +429,7 @@ def fightKeyhandler():
         return done
 
 
-# initialize player
+# initialize players
 def init(p1Char, p2Char):
     pygame.event.clear()
     # reset player and initiialize them
@@ -441,7 +455,7 @@ scene = 0
 roundDisplayTimer = 0
 characterSelectCountdown = 600
 
-
+# display score to screen
 def score():
     font = pygame.font.SysFont('comicsansms', 50)
     p1PointsOnScreen = font.render(str(player1.points), True, white)
@@ -449,7 +463,7 @@ def score():
     screen.blit(p1PointsOnScreen, [330, 45])
     screen.blit(p2PointsOnScreen, [450, 45])
 
-
+# display the main menu to the screen
 def mainMenu():
     image = pygame.image.load('mainMenuBG.png').convert()
     font = pygame.font.SysFont('comicsansms', 72)
@@ -459,23 +473,25 @@ def mainMenu():
     screen.blit(hawaiianPunch, [200, 200])
     screen.blit(pressEnterToStart, [180, 300])
 
-
+# display the current round
 def roundScreen():
     font = pygame.font.SysFont('comicsansms', 72)
     roundMessage = font.render('Round ' + str(roundNum), False, white)
     pygame.draw.rect(screen, black, [0, 0, size[0], size[1]])
     screen.blit(roundMessage, [100, 100])
 
-
+# display the character select screen
 def css(characterSelectCounter):
     font = pygame.font.SysFont('comicsansms', 72)
     playersList.update()
     playersList.draw(screen)
     charBlockList.draw(screen)
     timer = font.render(str(characterSelectCounter // 60), False, black)
-    screen.blit(timer, [350, 45])
+    chooseYourFighter = font.render('Choose your Fighter', False, black)
+    screen.blit(timer, [390, 45])
+    screen.blit(chooseYourFighter, [170, 120] )
 
-
+# control the fight scene
 def fight(roundNum, player1, player2):
     # spawn rate
     scene = 3
@@ -505,7 +521,7 @@ def fight(roundNum, player1, player2):
             scene = 4
     return scene, roundNum, player1, player2
 
-
+# initialize the base players for the character select screen
 player1, player2 = init('ryu', 'ken')
 
 
@@ -544,6 +560,7 @@ while not done:
             characterSelectCountdown = 6000
             scene = 2
         for player in playersList:
+            player.showHealth = False
             for charBlock in charBlockList:
                 player.charBlockList.add(charBlock)
         css(characterSelectCountdown)
@@ -560,6 +577,7 @@ while not done:
     elif scene == 3:
         pygame.event.clear()
         for player in playersList:
+            player.showHealth = True
             for charBlock in charBlockList:
                 player.charBlockList.remove(charBlock)
         score()
