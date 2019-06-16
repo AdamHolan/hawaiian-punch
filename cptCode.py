@@ -62,6 +62,7 @@ class character(pygame.sprite.Sprite):
         self.moveRight = False
         self.moveLeft = False
         self.showHealth = True
+        self.enemyCollision = True
 
         # player specific attributes
         if self.name == 'player1':
@@ -86,11 +87,11 @@ class character(pygame.sprite.Sprite):
     def loadImages(self, char):
         self.char = char
         self.idleImageRight = pygame.image.load(char + '.png').convert()
-        self.idleImageRight.set_colorkey(black)
+        self.idleImageRight.set_colorkey(green)
         self.punchImageRight = pygame.image.load(char + 'Punch.png').convert()
-        self.punchImageRight.set_colorkey(black)
+        self.punchImageRight.set_colorkey(green)
         self.blockImageRight = pygame.image.load(char + 'Block.png').convert()
-        self.blockImageRight.set_colorkey(black)
+        self.blockImageRight.set_colorkey(green)
 
         self.idleImageLeft = pygame.transform.flip(self.idleImageRight, True, False)
         self.punchImageLeft = pygame.transform.flip(self.punchImageRight, True, False)
@@ -171,11 +172,13 @@ class character(pygame.sprite.Sprite):
         enemyColList = pygame.sprite.spritecollide(self, [self.enemy], False)
 
         # uses the greater x value to determine the outcome, works generically since players can swap sides
-        for enemy in enemyColList:
-            if self.rect.x > self.enemy.rect.x:
-                self.rect.left = self.enemy.rect.right
-            else:
-                self.rect.right = self.enemy.rect.left
+        # Also, i use a variable to determine if i want collisions, specifcally to make the css easier to navigate
+        if self.enemyCollision:
+            for enemy in enemyColList:
+                if self.rect.x > self.enemy.rect.x:
+                    self.rect.left = self.enemy.rect.right
+                else:
+                    self.rect.right = self.enemy.rect.left
 
         # main platform collision detection, seperate from "charblocks" since they have special properties
         self.platformHitList = pygame.sprite.spritecollide(self, self.platformList, False)
@@ -272,11 +275,11 @@ class character(pygame.sprite.Sprite):
 class platform(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.width = size[0]
+        self.width = size[0] + 100
         self.height = size[1]
         self.image = pygame.Surface([self.width, self.height])
         self.rect = self.image.get_rect()
-        self.rect.x = 0
+        self.rect.x = -100
         self.rect.y = 500
 
 
@@ -334,14 +337,18 @@ charBlockList = pygame.sprite.Group()
 charBlockOffset = 170
 ryuBlock = charBlock(170, 'ryu', red)
 kenBlock = charBlock(370, 'ken', green)
+obamaBlock = charBlock(570, 'obama', blue)
 charBlockList.add(ryuBlock)
 charBlockList.add(kenBlock)
+charBlockList.add(obamaBlock)
 
 # handle keypresses for the main menu
 def menuKeyhandler():
     scene = 0
     done = False
     for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            done = True
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 scene = 1
@@ -465,13 +472,11 @@ def score():
 
 # display the main menu to the screen
 def mainMenu():
-    image = pygame.image.load('mainMenuBG.png').convert()
-    font = pygame.font.SysFont('comicsansms', 72)
-    hawaiianPunch = font.render('Hawaiian Punch', False, black)
-    pressEnterToStart = font.render('Press Enter to Start', False, red)
+    image = pygame.image.load('hawaiianPunchMenu.png').convert()
     screen.blit(image, [0, 0])
-    screen.blit(hawaiianPunch, [200, 200])
-    screen.blit(pressEnterToStart, [180, 300])
+
+
+
 
 # display the current round
 def roundScreen():
@@ -487,9 +492,10 @@ def css(characterSelectCounter):
     playersList.draw(screen)
     charBlockList.draw(screen)
     timer = font.render(str(characterSelectCounter // 60), False, black)
-    chooseYourFighter = font.render('Choose your Fighter', False, black)
-    screen.blit(timer, [390, 45])
-    screen.blit(chooseYourFighter, [170, 120] )
+    chooseYourFighter = pygame.image.load('chooseYourFighter.png').convert()
+    chooseYourFighter.set_colorkey(green)
+    screen.blit(timer, [20, 45])
+    screen.blit(chooseYourFighter, [100, 20] )
 
 # control the fight scene
 def fight(roundNum, player1, player2):
@@ -558,9 +564,10 @@ while not done:
         characterSelectCountdown -= 1
         if characterSelectCountdown == 0:
             characterSelectCountdown = 6000
-            scene = 2
+            scene = 4
         for player in playersList:
             player.showHealth = False
+            player.enemyCollision = False
             for charBlock in charBlockList:
                 player.charBlockList.add(charBlock)
         css(characterSelectCountdown)
