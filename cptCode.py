@@ -321,7 +321,7 @@ class charBlock(pygame.sprite.Sprite):
         self.image = pygame.image.load(name + 'CharBlock.png').convert()
         self.rect = self.image.get_rect()
         self.rect.x = x
-        self.rect.y = 230
+        self.rect.y = 240
         self.name = name
 
 # platform and player initilization (outside loop)
@@ -333,7 +333,6 @@ platformList.add(platform())
 fruitsList = pygame.sprite.Group()
 charBlockList = pygame.sprite.Group()
 
-charBlockOffset = 170
 ryuBlock = charBlock(170, 'ryu')
 kenBlock = charBlock(370, 'ken')
 obamaBlock = charBlock(570, 'obama')
@@ -387,6 +386,7 @@ def cssKeyhandler():
     return done
 
 # handle keypresses for the fight scene
+# CONTROLS
 def fightKeyhandler():
     done = False
     for event in pygame.event.get():
@@ -439,23 +439,32 @@ def fightKeyhandler():
 def init(p1Char, p2Char):
     pygame.event.clear()
     # reset player and initiialize them
-    # i dont have it outside the loop since i need to do this several times anyway
+    # i have to make new players every time so i can reset all attributes with one fell swoop
     for player in playersList:
         playersList.remove(player)
+
+    # reset fruits from carrying over
     for fruit in fruitsList:
         fruitsList.remove(fruit)
+
+    # give character an x and a y, and initialize their sprite
     player1 = character('player1', p1Char, 200, 400)
     player2 = character('player2', p2Char, 510, 400)
     playersList.add(player1)
     playersList.add(player2)
+
+    # allow players contact with platform
     for player in playersList:
         for platform in platformList:
             player.platformList.add(platform)
+
+    # give players enemies to interact with
     player1.enemy = player2
     player2.enemy = player1
     return player1, player2
 
 
+# initalize global variables for timers
 roundNum = 1
 scene = 0
 roundDisplayTimer = 0
@@ -496,7 +505,7 @@ def css(characterSelectCounter):
 
 # control the fight scene
 def fight(roundNum, player1, player2):
-    # spawn rate
+    # fruit spawn rate
     scene = 3
     if random.randint(1, 100) == 1:
         fruit = Fruit()
@@ -510,6 +519,8 @@ def fight(roundNum, player1, player2):
     fruitsList.update()
     fruitsList.draw(screen)
     playersList.draw(screen)
+
+    # check if player is dead
     for player in playersList:
         dead = player.deathCheck()
         if dead:
@@ -538,21 +549,34 @@ def showWinner():
 
 # program loop
 while not done:
-
     # event loop
+    # if scene is main menu
     if scene == 0:
         scene, done = menuKeyhandler()
+
+    # if scene is character select screen
     elif scene == 1:
         done = cssKeyhandler()
+
+    # if you are fighting
     elif scene == 3:
         done = fightKeyhandler()
+
+    # initialization screen
     elif scene == 4:
+        # i need a temp variable for points because i reset both players attributes
         p1Points = player1.points
         p2Points = player2.points
+
+        # reset characters subprogram
         player1, player2 = init(player1.char, player2.char)
         player1.points = p1Points
         player2.points = p2Points
+
+        # clear event queue so movement doesnt carry over
         pygame.event.clear()
+
+        # go to display round scene
         scene = 2
 
     # screen clearing code
@@ -566,10 +590,13 @@ while not done:
 
     # character select screen
     elif scene == 1:
+        # timer to control scene
         characterSelectCountdown -= 1
         if characterSelectCountdown == 0:
             characterSelectCountdown = 600
+            # go to initialize player scene
             scene = 4
+        # disable health bars, collision, and add chra blocks
         for player in playersList:
             player.showHealth = False
             player.enemyCollision = False
@@ -599,11 +626,13 @@ while not done:
         scene, roundNum, player1, player2 = fight(roundNum, player1, player2)
         for player in playersList:
             if player.points == 3:
+                # go to winner scene
                 scene = 5
 
     elif scene == 5:
         showWinner()
         winnerDisplayTimer += 1
+        # winner timer
         if winnerDisplayTimer == 600:
             winnerDisplayTimer = 0
             roundNum = 0
