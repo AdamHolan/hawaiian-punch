@@ -275,7 +275,7 @@ class character(pygame.sprite.Sprite):
 class platform(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.width = size[0] + 100
+        self.width = size[0] + 200
         self.height = size[1]
         self.image = pygame.Surface([self.width, self.height])
         self.rect = self.image.get_rect()
@@ -460,6 +460,7 @@ roundNum = 1
 scene = 0
 roundDisplayTimer = 0
 characterSelectCountdown = 600
+winnerDisplayTimer = 0
 
 # display score to screen
 def score():
@@ -518,7 +519,6 @@ def fight(roundNum, player1, player2):
             else:
                 player1.points += 1
             # kill the player and reset the scene
-            playersList.remove(player)
             roundNum += 1
             scene = 4
     return scene, roundNum, player1, player2
@@ -526,6 +526,15 @@ def fight(roundNum, player1, player2):
 # initialize the base players for the character select screen
 player1, player2 = init('ryu', 'ken')
 
+# winner scene
+def showWinner():
+    for player in playersList:
+        if player.points == 3:
+            winner = player.name
+    font = pygame.font.SysFont('comicsansms', 58)
+    roundMessage = font.render('The Winner is: ' + winner, False, white)
+    pygame.draw.rect(screen, black, [0, 0, size[0], size[1]])
+    screen.blit(roundMessage, [100, 100])
 
 # program loop
 while not done:
@@ -559,7 +568,7 @@ while not done:
     elif scene == 1:
         characterSelectCountdown -= 1
         if characterSelectCountdown == 0:
-            characterSelectCountdown = 6000
+            characterSelectCountdown = 600
             scene = 4
         for player in playersList:
             player.showHealth = False
@@ -588,6 +597,21 @@ while not done:
         # display the score
         score()
         scene, roundNum, player1, player2 = fight(roundNum, player1, player2)
+        for player in playersList:
+            if player.points == 3:
+                scene = 5
+
+    elif scene == 5:
+        showWinner()
+        winnerDisplayTimer += 1
+        if winnerDisplayTimer == 600:
+            winnerDisplayTimer = 0
+            roundNum = 0
+            # reset players points
+            for player in playersList:
+                player.points = 0
+            # go back to css
+            scene = 1
 
     # update display
     pygame.display.flip()
