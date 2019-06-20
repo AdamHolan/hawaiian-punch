@@ -316,10 +316,9 @@ class Fruit(pygame.sprite.Sprite):
             self.changeY += 0.35
 
 class charBlock(pygame.sprite.Sprite):
-    def __init__(self, x, name, colour):
+    def __init__(self, x, name):
         super().__init__()
-        self.image = pygame.Surface([50, 50])
-        self.image.fill(colour)
+        self.image = pygame.image.load(name + 'CharBlock.png').convert()
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = 230
@@ -335,9 +334,9 @@ fruitsList = pygame.sprite.Group()
 charBlockList = pygame.sprite.Group()
 
 charBlockOffset = 170
-ryuBlock = charBlock(170, 'ryu', red)
-kenBlock = charBlock(370, 'ken', green)
-obamaBlock = charBlock(570, 'obama', blue)
+ryuBlock = charBlock(170, 'ryu')
+kenBlock = charBlock(370, 'ken')
+obamaBlock = charBlock(570, 'obama')
 charBlockList.add(ryuBlock)
 charBlockList.add(kenBlock)
 charBlockList.add(obamaBlock)
@@ -475,9 +474,6 @@ def mainMenu():
     image = pygame.image.load('hawaiianPunchMenu.png').convert()
     screen.blit(image, [0, 0])
 
-
-
-
 # display the current round
 def roundScreen():
     font = pygame.font.SysFont('comicsansms', 72)
@@ -582,11 +578,14 @@ while not done:
         roundScreen()
 
     elif scene == 3:
+        # clear the events as sometimes an event would store, making a character move infinitely
         pygame.event.clear()
+        # remove the blocks from earlier and show health
         for player in playersList:
             player.showHealth = True
             for charBlock in charBlockList:
                 player.charBlockList.remove(charBlock)
+        # display the score
         score()
         scene, roundNum, player1, player2 = fight(roundNum, player1, player2)
 
